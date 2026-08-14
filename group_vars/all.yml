@@ -8,9 +8,8 @@ management_cidr: 1.1.1.1/32
 # Сеть, из которой разрешён административный SSH.
 
 ssh_public_key: "used-ssh-key"
-# Путь к public SSH key на Ansible Controller.
-
 # Публичный ключ для admin-user и deploy-user.
+
 project_dir: /opt/system-admin-test
 # Runtime-каталог проекта на web-host.
 
