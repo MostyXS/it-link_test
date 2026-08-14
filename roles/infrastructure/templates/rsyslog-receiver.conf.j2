@@ -1,0 +1,16 @@
+module(load="imtcp")
+
+input(
+  type="imtcp"
+  port="{{ syslog_remote_port }}"
+)
+
+if ($syslogfacility-text == "local7") then {
+  action(
+    type="omfile"
+    file="/var/log/remote-nginx-access.log"
+    fileCreateMode="0640"
+  )
+
+  stop
+}

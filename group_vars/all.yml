@@ -1,0 +1,33 @@
+admin_user: admin-user
+# Административный Linux-пользователь.
+
+deploy_user: deploy-user
+# Пользователь для deployment-задач.
+
+management_cidr: 1.1.1.1/32
+# Сеть, из которой разрешён административный SSH.
+
+ssh_public_key: "used-ssh-key"
+# Путь к public SSH key на Ansible Controller.
+
+# Публичный ключ для admin-user и deploy-user.
+project_dir: /opt/system-admin-test
+# Runtime-каталог проекта на web-host.
+
+postgres_db: app_db
+# Имя PostgreSQL database.
+
+postgres_user: app_user
+# Пользователь PostgreSQL приложения.
+
+postgres_password: "{{ vault_postgres_password }}"
+# Пароль берётся из Ansible Vault.
+
+syslog_remote_host: "{{ hostvars[groups['syslog'][0]].ansible_host }}"
+# Адрес syslog-host берётся из inventory.
+
+syslog_allowed_source: "{{ hostvars[groups['web'][0]].ansible_host }}"
+# Только web-host разрешён как источник TCP/514.
+
+syslog_remote_port: 514
+# TCP-порт удалённого Syslog receiver.

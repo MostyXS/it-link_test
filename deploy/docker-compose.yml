@@ -1,0 +1,112 @@
+services:
+
+  nginx:
+    image: nginx:stable
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - ./web/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./web/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./web/nginx/ssl:/etc/nginx/ssl:ro
+      - ./web/app:/var/www/html:ro
+
+    depends_on:
+      - apache
+      - rsyslog
+
+    networks:
+      - app_net
+      - log_net
+
+
+  apache:
+    build:
+      context: ./web/apache
+
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    expose:
+      - "80"
+
+    volumes:
+      - ./web/app:/var/www/html:ro
+      - ./web/php/php.ini:/usr/local/etc/php/conf.d/app.ini:ro
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - app_net
+      - db_net
+
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/postgresql.conf
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./data/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./data/postgres/init:/docker-entrypoint-initdb.d:ro
+
+    expose:
+      - "5432"
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+    networks:
+      - db_net
+
+
+  rsyslog:
+    image: rsyslog/rsyslog:2026-04
+    restart: unless-stopped
+
+    volumes:
+      - ./logging/rsyslog/rsyslog.conf:/etc/rsyslog.conf:ro
+      - rsyslog_queue:/var/spool/rsyslog
+
+    expose:
+      - "1514/udp"
+
+    networks:
+      - log_net
+
+
+networks:
+
+  app_net:
+    internal: true
+
+  db_net:
+    internal: true
+
+  log_net:
+    # Не internal: local rsyslog нужен egress к syslog-host.
+
+
+volumes:
+  postgres_data:
+  rsyslog_queue:

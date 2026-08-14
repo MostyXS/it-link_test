@@ -1,0 +1,12 @@
+- name: Configure common host state
+  ansible.builtin.import_tasks: common.yml
+
+- name: Configure web host
+  ansible.builtin.import_tasks: web_host.yml
+  when: "'web' in group_names"
+  # Выполняется только для inventory group web.
+
+- name: Configure syslog host
+  ansible.builtin.import_tasks: syslog_host.yml
+  when: "'syslog' in group_names"
+  # Выполняется только для inventory group syslog.

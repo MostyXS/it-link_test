@@ -1,0 +1,10 @@
+- name: Configure infrastructure
+  hosts: all
+  become: true
+
+  vars_files:
+    - group_vars/vault.yml
+    # Зашифрованный PostgreSQL-secret загружается явно.
+
+  roles:
+    - infrastructure

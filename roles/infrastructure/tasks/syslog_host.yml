@@ -1,0 +1,28 @@
+---
+- name: Install rsyslog
+  ansible.builtin.apt:
+    name: rsyslog
+    state: present
+    update_cache: true
+
+- name: Render remote rsyslog receiver
+  ansible.builtin.template:
+    src: rsyslog-receiver.conf.j2
+    dest: /etc/rsyslog.d/10-remote-receiver.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart rsyslog
+
+- name: Allow remote Syslog only from web host
+  community.general.ufw:
+    rule: allow
+    src: "{{ syslog_allowed_source }}"
+    port: "{{ syslog_remote_port }}"
+    proto: tcp
+
+- name: Enable rsyslog
+  ansible.builtin.service:
+    name: rsyslog
+    state: started
+    enabled: true

@@ -1,0 +1,35 @@
+global(
+  workDirectory="/var/spool/rsyslog"
+)
+
+module(load="imudp")
+
+input(
+  type="imudp"
+  port="1514"
+)
+
+if ($syslogfacility-text == "local7") then {
+  action(
+    type="omfwd"
+
+    target="{{ syslog_remote_host }}"
+    # IP/DNS remote syslog-host.
+
+    port="{{ syslog_remote_port }}"
+    # Remote TCP port.
+
+    protocol="tcp"
+
+    action.resumeRetryCount="-1"
+    # Retry indefinitely while receiver is unavailable.
+
+    queue.type="LinkedList"
+    queue.filename="remote_syslog"
+    queue.maxdiskspace="1g"
+    queue.saveonshutdown="on"
+    # Disk-assisted persistent queue.
+  )
+
+  stop
+}

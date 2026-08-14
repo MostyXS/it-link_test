@@ -1,0 +1,99 @@
+---
+- name: Allow Nginx HTTP and HTTPS
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop:
+    - "80"
+    - "443"
+
+- name: Install Docker and TLS dependencies
+  ansible.builtin.apt:
+    name:
+      - docker.io
+      - docker-compose-v2
+      - python3-cryptography
+    state: present
+    update_cache: true
+
+- name: Enable Docker
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Create project directory
+  ansible.builtin.file:
+    path: "{{ project_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Copy Compose source project
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/deploy/"
+    dest: "{{ project_dir }}/deploy/"
+    mode: preserve
+  notify: Restart web stack
+
+- name: Create generated runtime directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ project_dir }}/deploy/logging/rsyslog"
+    - "{{ project_dir }}/deploy/web/nginx/ssl"
+
+- name: Render PostgreSQL environment
+  ansible.builtin.template:
+    src: .env.j2
+    dest: "{{ project_dir }}/deploy/.env"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart web stack
+
+- name: Render local rsyslog forwarder
+  ansible.builtin.template:
+    src: rsyslog-forwarder.conf.j2
+    dest: "{{ project_dir }}/deploy/logging/rsyslog/rsyslog.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart web stack
+
+- name: Generate TLS private key
+  community.crypto.openssl_privatekey:
+    path: "{{ project_dir }}/deploy/web/nginx/ssl/server.key"
+    size: 2048
+    mode: "0600"
+  notify: Restart web stack
+
+- name: Generate TLS CSR
+  community.crypto.openssl_csr:
+    path: "{{ project_dir }}/deploy/web/nginx/ssl/server.csr"
+    privatekey_path: "{{ project_dir }}/deploy/web/nginx/ssl/server.key"
+    common_name: "{{ inventory_hostname }}"
+  notify: Restart web stack
+
+- name: Generate self-signed TLS certificate
+  community.crypto.x509_certificate:
+    path: "{{ project_dir }}/deploy/web/nginx/ssl/server.crt"
+    privatekey_path: "{{ project_dir }}/deploy/web/nginx/ssl/server.key"
+    csr_path: "{{ project_dir }}/deploy/web/nginx/ssl/server.csr"
+    provider: selfsigned
+    mode: "0644"
+  notify: Restart web stack
+
+- name: Start application stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ project_dir }}/deploy"
+    state: present
+    build: always
+    pull: missing
+  when: not ansible_check_mode
