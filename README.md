@@ -1,4 +1,4 @@
-## How to launch
+# How to launch
 
 ## Deploy
 
@@ -10,10 +10,14 @@ make deploy
 
 ```bash
 make check
+```
 
-# Конфигурация была проверена в контексте двух VM yandex-cloud и локальной машины.
 
-----------------------------------
+
+# Notes
+
+Конфигурация была проверена в контексте двух VM yandex-cloud и локальной машины.
+
 
 ## Prerequisites
 
